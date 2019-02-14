@@ -2,12 +2,14 @@ import random
 import numpy as np
 import tensorflow as tf
 
+import rollout
+
 
 NUM_AGENTS = 10
 NUM_MATCHES = 1000
 INPUT_LENGTH = 100
 LATENT_DIMS = [100, 100]
-BATCH_SIZE = 200
+BATCH_SIZE = 20
 
 class Agent:
 
@@ -17,9 +19,9 @@ class Agent:
     def build_agent(self):
         with tf.variable_scope("agent_" + str(self.id)):
 
-            self.x = tf.placeholder(shape=[BATCH_SIZE, INPUT_LENGTH], dtype=tf.float32)
-            self.y = tf.placeholder(shape=[BATCH_SIZE, 1], dtype=tf.uint8)
-            x = self.x
+            self.x = tf.placeholder(shape=[None, INPUT_LENGTH, 2], dtype=tf.float32)
+            self.y = tf.placeholder(shape=[None, 1], dtype=tf.uint8)
+            x = tf.layers.flatten(self.x)
             for dim in LATENT_DIMS:
                 x = tf.layers.dense(x, dim, activation=tf.nn.relu)
 
@@ -59,9 +61,17 @@ with tf.Session() as sess:
         a1, a2 = random.sample(agents, 2)
         x, y = train_set(a1, a2, BATCH_SIZE)
 
-        a1_pred_fn = a1.predict()(x)
-        a2_pred_fn = a2.predict()(x)
+        a1_pred_fn = a1.predict()
+        a2_pred_fn = a2.predict()
 
+        ros = []
+        for o in range(BATCH_SIZE):
+            ro = rollout.rollout(a1_pred_fn, a2_pred_fn, INPUT_LENGTH, BATCH_SIZE)
+            ros.append(ro)
+
+        x = np.array(ros)
+        print(x)
+        quit()
         print(preds)
         _, a1_cost = sess.run([a1.optimizer, a1.cost], feed_dict={a1.x: x, a1.y: y})
         print("a1_cost", a1_cost)
