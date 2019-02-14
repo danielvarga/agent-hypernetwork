@@ -14,11 +14,14 @@ def make_tree(rollouts):
         rew = reward(rollout)
         current_dict = root
         for step in rollout:
+            current_dict = current_dict.setdefault((step[0],step[1]), {'value':0, 'count':0})
             current_dict['value'] += rew
             current_dict['count'] += 1
-            current_dict = current_dict.setdefault(step[0], {'value':0, 'count':0})
     return root
 
+
+# def collect_training_data(tree):
+    
 
     
 print(rollouts)
