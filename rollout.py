@@ -36,8 +36,8 @@ def rollout(a, b, k, n):
     return np.array(moves)
 
 
-def multi_rollout(a, b, k, n, rollout_num):
-    return [rollout(a, b, k, n) for _ in range(rollout_num)]
+def multi_rollout(a, b, k, length_generator, rollout_num):
+    return [rollout(a, b, k, length_generator()) for _ in range(rollout_num)]
 
 
 def tit_for_tat(state):
