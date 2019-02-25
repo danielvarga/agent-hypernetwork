@@ -1,21 +1,20 @@
 import numpy as np
 
 import rollout
+from rollout import DEF, COOP, NONE
 
-rollout_num = 5
-length_generator = lambda : 10
+rollout_num = 1000
+length_generator = lambda : 5
 memory_size = 3
 
 def create_rollouts():
     agent_a = rollout.defect_bot
     agent_b = rollout.tit_for_tat
-    rollouts = rollout.multi_rollout(agent_a, agent_b, memory_size, length_generator, rollout_num)
-    return rollouts
-
-
-# rollouts = create_rollouts()
-
-rollouts = [np.random.randint(2,size=(length_generator(), 2)) for _ in range(rollout_num)]
+    agent_c = rollout.random_agent
+    
+    rollouts1 = rollout.multi_rollout(agent_c, agent_a, memory_size, length_generator, rollout_num)
+    rollouts2 = rollout.multi_rollout(agent_c, agent_b, memory_size, length_generator, rollout_num)
+    return rollouts1 + rollouts2
 
 
 def reward(moves):
@@ -33,10 +32,54 @@ def make_tree(rollouts):
             current_dict['count'] += 1
     return root
 
-
-# def collect_training_data(tree):
+def get_children(tree):
+    children = list(tree.keys())
+    children.remove('value')
+    children.remove('count')
+    return children
+                        
     
 
+def collect_training_data(tree):
+    def collect_aux(tree, history):
+        children = get_children(tree)
+        # print(history, ": ", children)
+        def_value = 0
+        def_count = 0
+        coop_value = 0
+        coop_count = 0
+        if (DEF, DEF) in children:
+            def_value += tree[(DEF, DEF)]['value'][0]
+            def_count += tree[(DEF, DEF)]['count']
+        if (DEF, COOP) in children:
+            def_value += tree[(DEF, COOP)]['value'][0]
+            def_count += tree[(DEF, COOP)]['count']
+        if (COOP, DEF) in children:
+            coop_value += tree[(COOP, DEF)]['value'][0]
+            coop_count += tree[(COOP, DEF)]['count']
+        if (COOP, COOP) in children:
+            coop_value += tree[(COOP, COOP)]['value'][0]
+            coop_count += tree[(COOP, COOP)]['count']
 
-print(rollouts)
-print(make_tree(rollouts))
+        result = []
+        if coop_count > 0 and def_count > 0: # only extract training data when we have both cooperating and defecting successors            
+            def_avg_value = def_value * 1.0 / def_count
+            coop_avg_value = coop_value * 1.0 / coop_count
+            if coop_avg_value >= def_avg_value:
+                result += [(history, COOP)]
+            else:
+                result += [(history, DEF)]
+            
+        for k in children:
+            history2 = history + [k]
+            result += collect_aux(tree[k], history2)
+        return result
+    return collect_aux(tree, [])
+
+rollouts = create_rollouts()
+# print(rollouts)
+tree = make_tree(rollouts)
+# print(tree)
+training_data = collect_training_data(tree)
+for td in training_data:
+    print(td)

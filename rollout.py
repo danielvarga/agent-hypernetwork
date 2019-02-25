@@ -45,7 +45,9 @@ def tit_for_tat(state):
         return 0.0
     else:
         return 1.0
-
+    
+def random_agent(state):
+    return np.random.randint(2)
 
 def cooperate_bot(state):
     return 1.0
