@@ -40,7 +40,7 @@ def get_children(tree):
                         
     
 
-def collect_training_data(tree):
+def collect_training_data(tree, memory_size):
     def collect_aux(tree, history):
         children = get_children(tree)
         # print(history, ": ", children)
@@ -61,25 +61,31 @@ def collect_training_data(tree):
             coop_value += tree[(COOP, COOP)]['value'][0]
             coop_count += tree[(COOP, COOP)]['count']
 
-        result = []
+        result_x = []
+        result_y = []
         if coop_count > 0 and def_count > 0: # only extract training data when we have both cooperating and defecting successors            
             def_avg_value = def_value * 1.0 / def_count
             coop_avg_value = coop_value * 1.0 / coop_count
+            result_x += [history[-memory_size:]]
             if coop_avg_value >= def_avg_value:
-                result += [(history, COOP)]
+                result_y += [COOP]
             else:
-                result += [(history, DEF)]
+                result_y += [DEF]
             
         for k in children:
             history2 = history + [k]
-            result += collect_aux(tree[k], history2)
-        return result
-    return collect_aux(tree, [])
+            result_x2, result_y2 = collect_aux(tree[k], history2)
+            result_x += result_x2
+            result_y += result_y2
+        return result_x, result_y
+    history = [(NONE, NONE) for _ in range(memory_size)]
+    x, y = collect_aux(tree, history)
+    return np.array(x), np.array(y)
 
 rollouts = create_rollouts()
 # print(rollouts)
 tree = make_tree(rollouts)
 # print(tree)
-training_data = collect_training_data(tree)
-for td in training_data:
-    print(td)
+training_data = collect_training_data(tree, memory_size)
+# for td in training_data:
+#     print(td)
