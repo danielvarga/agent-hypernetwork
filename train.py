@@ -7,12 +7,12 @@ import reward
 
 
 NUM_AGENTS = 10
-NUM_MATCHES = 30
+NUM_MATCHES = 300
 INPUT_LENGTH = 10
 LATENT_DIMS = [100, 100]
 BATCH_SIZE = 20
 ROLLOUT_NUM = 1000
-length_generator = lambda : 5
+ROLLOUT_LENGTH = 5
 
 class Agent:
 
@@ -63,8 +63,8 @@ init = tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
 
-    a1, a2 = random.sample(agents, 2)
     for i in range(NUM_MATCHES):
+        a1, a2 = random.sample(agents, 2)
         # x, y = train_set(a1, a2, BATCH_SIZE)
 
         a1_pred_fn = a1.predict()
@@ -72,9 +72,9 @@ with tf.Session() as sess:
         # a2_pred_fn = rollout.tit_for_tat
         # a2_pred_fn = rollout.cooperate_bot
 
-        rollouts = rollout.multi_rollout(a1_pred_fn, a2_pred_fn, INPUT_LENGTH, length_generator, ROLLOUT_NUM)
+        rollouts = rollout.multi_rollout(a1_pred_fn, a2_pred_fn, INPUT_LENGTH, lambda:ROLLOUT_LENGTH, ROLLOUT_NUM)
         rewards = [reward.reward(rollout) for rollout in rollouts]
-        avg_reward = sum(rewards) * 1.0 / len(rewards)
+        avg_reward = sum(rewards) * 1.0 / len(rewards) / ROLLOUT_LENGTH
         tree = reward.make_tree(rollouts)
         x, y = reward.collect_training_data(tree, INPUT_LENGTH)
         y = np.expand_dims(y, axis=1)
